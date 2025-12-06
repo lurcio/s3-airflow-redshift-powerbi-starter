@@ -1,0 +1,35 @@
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install black flake8 pytest
+      - name: Lint DAGs
+        run: black --check airflow/dags
+      - name: Static checks
+        run: flake8 airflow/dags
+      - name: DAG import test
+        run: |
+          python - <<'PY'
+          import importlib.util, glob
+          for f in glob.glob('airflow/dags/*.py'):
+              spec = importlib.util.spec_from_file_location('dag', f)
+              m = importlib.util.module_from_spec(spec)
+              spec.loader.exec_module(m)
+          print('DAG import OK')
+          PY
+      - name: Unit tests
+        run: pytest -q

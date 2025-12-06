@@ -1,0 +1,25 @@
+
+version: "3.8"
+services:
+  airflow:
+    image: apache/airflow:2.9.3
+    environment:
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__EXECUTOR: "LocalExecutor"
+      _PIP_ADDITIONAL_REQUIREMENTS: "apache-airflow-providers-amazon boto3"
+      # Pass through selected env vars for DAGs/operators
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION}
+      S3_BUCKET: ${S3_BUCKET}
+      REDSHIFT_SERVERLESS_WORKGROUP: ${REDSHIFT_SERVERLESS_WORKGROUP}
+      REDSHIFT_DATABASE: ${REDSHIFT_DATABASE}
+      REDSHIFT_IAM_ROLE_ARN: ${REDSHIFT_IAM_ROLE_ARN}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./plugins:/opt/airflow/plugins
+      - ../sql:/opt/sql
+    command: ["bash","-c",
+      "airflow db init && airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com && airflow webserver & airflow scheduler"]
