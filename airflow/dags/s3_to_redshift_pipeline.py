@@ -1,4 +1,3 @@
-
 from datetime import datetime
 import os
 from airflow import DAG
@@ -21,7 +20,7 @@ with DAG(
     start_date=datetime(2025, 1, 1),
     schedule=None,
     catchup=False,
-    tags=["s3","redshift","powerbi"],
+    tags=["s3", "redshift", "powerbi"],
 ) as dag:
 
     start = EmptyOperator(task_id="start")
@@ -98,4 +97,12 @@ with DAG(
 
     finish = EmptyOperator(task_id="finish")
 
-    chain(start, create_schemas, create_staging, copy_from_s3, create_curated, dq_rowcount, finish)
+    chain(
+        start,
+        create_schemas,
+        create_staging,
+        copy_from_s3,
+        create_curated,
+        dq_rowcount,
+        finish,
+    )
