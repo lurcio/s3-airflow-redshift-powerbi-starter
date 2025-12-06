@@ -3,7 +3,9 @@ import os
 from airflow import DAG
 from airflow.models.baseoperator import chain
 from airflow.operators.empty import EmptyOperator
-from airflow.providers.amazon.aws.operators.redshift_data import RedshiftDataOperator
+from airflow.providers.amazon.aws.operators.redshift_data import (
+    RedshiftDataOperator,
+)
 
 # Read from env; candidate may switch to Airflow Variables
 S3_BUCKET = os.getenv("S3_BUCKET")

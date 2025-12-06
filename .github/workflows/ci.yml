@@ -18,7 +18,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install black flake8 pytest
       - name: Lint DAGs
-        run: black --check airflow/dags
+        run: black --line-length 79 --check airflow/dags
       - name: Static checks
         run: flake8 airflow/dags
       - name: DAG import test
