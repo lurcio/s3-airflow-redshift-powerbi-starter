@@ -16,7 +16,7 @@ jobs:
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
-          pip install apache-airflow black flake8 pytest
+          pip install apache-airflow apache-airflow-providers-amazon black flake8 pytest
       - name: Lint DAGs
         run: black --line-length 79 --check airflow/dags
       - name: Static checks
