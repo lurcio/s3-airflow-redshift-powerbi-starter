@@ -54,6 +54,7 @@ data "aws_iam_policy_document" "s3_policy" {
 # Redshift Serverless
 resource "aws_redshiftserverless_namespace" "ns" {
   namespace_name = "${var.project}-ns"
+  db_name        = "analytics"
 }
 
 resource "aws_redshiftserverless_workgroup" "wg" {
