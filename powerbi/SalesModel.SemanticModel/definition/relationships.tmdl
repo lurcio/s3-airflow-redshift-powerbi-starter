@@ -1,0 +1,5 @@
+relationship 029a63b3-53d4-5acb-adc1-5f630a0e1833
+	crossFilteringBehavior: bothDirections
+	fromColumn: Date.Date
+	toColumn: fact_sales.order_date
+

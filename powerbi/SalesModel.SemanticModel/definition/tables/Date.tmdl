@@ -1,0 +1,92 @@
+table Date
+	lineageTag: 37f7c96b-d848-4b4c-a477-95a65e1b750e
+	dataCategory: Time
+
+	column Date
+		isKey
+		formatString: General Date
+		lineageTag: 46218825-cf85-46c9-8ec3-6bbe5528acbe
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Date]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Year
+		formatString: 0
+		lineageTag: 8000ce37-6b23-4773-ae85-ca7638db2c95
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Year]
+
+		annotation SummarizationSetBy = User
+
+	column Quarter
+		lineageTag: 24c26483-77c2-45ba-bcdf-ab663b9ff49f
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Quarter]
+
+		annotation SummarizationSetBy = Automatic
+
+	column MonthNo
+		formatString: 0
+		lineageTag: bb4f0f85-9d02-4c0d-ae63-1e7063f22d37
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [MonthNo]
+
+		annotation SummarizationSetBy = Automatic
+
+	column MonthName
+		lineageTag: 054acf55-3914-4fe8-a48b-047e8c4cadb4
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [MonthName]
+
+		annotation SummarizationSetBy = Automatic
+
+	column YearMonth
+		lineageTag: adc41c4a-1830-4a3f-be13-dac999a015ad
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [YearMonth]
+
+		annotation SummarizationSetBy = Automatic
+
+	column WeekdayNo
+		formatString: 0
+		lineageTag: 80bf44f1-220e-4c7f-81a9-bf86a8679405
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [WeekdayNo]
+
+		annotation SummarizationSetBy = Automatic
+
+	column WeekdayName
+		lineageTag: 09dcf076-bdce-460c-9db7-ff57b8d80de9
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [WeekdayName]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Date = calculated
+		mode: import
+		source = ```
+				
+				ADDCOLUMNS(
+				    CALENDARAUTO(),
+				    "Year", YEAR([Date]),
+				    "Quarter", "Q" & FORMAT([Date], "Q"),
+				    "MonthNo", MONTH([Date]),
+				    "MonthName", FORMAT([Date], "MMMM"),
+				    "YearMonth", FORMAT([Date], "yyyy-MM"),
+				    "WeekdayNo", WEEKDAY([Date], 2),   // 2 = Monday=1, Sunday=7; change if you prefer different start
+				    "WeekdayName", FORMAT([Date], "dddd")
+				)
+				
+				```
+
+	annotation PBI_Id = de13b02a65ee46fda5ecddd4132a7a11
+

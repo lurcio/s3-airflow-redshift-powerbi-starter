@@ -1,0 +1,113 @@
+table fact_sales
+	lineageTag: 8c5efeef-a0d2-4abb-998a-4b84ce23ecbb
+
+	measure 'Total Sales' = SUM('fact_sales'[amount])
+		lineageTag: d930927b-7cbb-49e1-a39d-6b12990b0aa4
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Avg Order Value' = DIVIDE([Total Sales], DISTINCTCOUNT('fact_sales'[order_id]))
+		lineageTag: 0a7e4fb4-399b-4097-afe8-56bc476c77ea
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Orders Last Year' = ```
+			
+			    CALCULATE(
+			        [Total Orders],
+			        SAMEPERIODLASTYEAR('Date'[Date])
+			    )
+			```
+		lineageTag: 673682b9-e127-4dbd-bb5e-84cdce148ab7
+
+	measure 'Total Orders' = ```
+			DISTINCTCOUNT('fact_sales'[order_id])
+			
+			```
+		formatString: 0
+		lineageTag: 5b6a8151-3715-471d-869a-0c8f671ac842
+
+	measure 'Orders YoY' = ```
+			
+			    DIVIDE(
+			        [Total Orders] - [Orders Last Year],
+			        [Orders Last Year]
+			    )
+			```
+		lineageTag: 218be60a-e04e-4f9e-9d87-168937727778
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Page Title' = ```
+			"Sales Dashboard - " 
+			    & SELECTEDVALUE('Date'[Year], "All Years")
+			```
+		lineageTag: c74a2358-6c1a-48dd-bbef-d4c7edcc501f
+
+	column order_id
+		dataType: int64
+		formatString: 0
+		sourceProviderType: bigint
+		lineageTag: e31ce04e-41a0-4c33-87ac-7bdfa7de1fe2
+		summarizeBy: none
+		sourceColumn: order_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_id
+		dataType: int64
+		formatString: 0
+		sourceProviderType: bigint
+		lineageTag: e1e0e591-7ea9-4f51-a096-c8c07cb7bd7a
+		summarizeBy: none
+		sourceColumn: customer_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column order_date
+		dataType: dateTime
+		formatString: Long Date
+		sourceProviderType: date
+		lineageTag: 98f6798a-9e83-480c-9d84-cc8f7bf63ca8
+		summarizeBy: none
+		sourceColumn: order_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column order_month
+		dataType: dateTime
+		formatString: Long Date
+		sourceProviderType: date
+		lineageTag: e377dd5b-96e4-45a0-91fb-1a29686588e7
+		summarizeBy: none
+		sourceColumn: order_month
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column amount
+		dataType: double
+		sourceProviderType: decimal(18, 2)
+		lineageTag: 4f34d673-0e5a-45b9-88b6-bcd3fcf6063e
+		summarizeBy: none
+		sourceColumn: amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition fact_sales = m
+		mode: directQuery
+		source =
+				let
+				    Source = AmazonRedshift.Database("pre-assessment-wg.657038720037.eu-west-2.redshift-serverless.amazonaws.com:5439","analytics"),
+				    curated = Source{[Name="curated"]}[Data],
+				    fact_sales1 = curated{[Name="fact_sales"]}[Data]
+				in
+				    fact_sales1
+
+	annotation PBI_ResultType = Exception
+
