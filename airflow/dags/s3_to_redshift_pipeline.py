@@ -45,7 +45,13 @@ def _fail_if_bad(**context):
         or (cnt_bad is not None and cnt_bad > 0)
     ):
         raise AirflowFailException(
-            f"Data quality check failed — row_count={cnt_row}, null_customers={cnt_null_customers}, null_orders={cnt_null_orders}, bad_amount={cnt_bad}"
+            f"""
+            Data quality check failed:
+            row_count={cnt_row}
+            null_customers={cnt_null_customers}
+            null_orders={cnt_null_orders}
+            bad_amount={cnt_bad}
+            """
         )
     else:
         print("Data quality checks passed ✅")
@@ -149,7 +155,10 @@ with DAG(
         database=REDSHIFT_DB,
         workgroup_name=REDSHIFT_WORKGROUP,
         return_sql_result=True,
-        sql=f"SELECT COUNT(*) AS null_customers FROM curated.{CURATED_TABLE} WHERE customer_id IS NULL;",
+        sql=f"""
+        SELECT COUNT(*) AS null_customers FROM curated.{CURATED_TABLE}
+        WHERE customer_id IS NULL;
+        """,
     )
 
     dq_null_order_id = RedshiftDataOperator(
@@ -157,7 +166,10 @@ with DAG(
         database=REDSHIFT_DB,
         workgroup_name=REDSHIFT_WORKGROUP,
         return_sql_result=True,
-        sql=f"SELECT COUNT(*) AS null_orders FROM curated.{CURATED_TABLE} WHERE order_id IS NULL;",
+        sql=f"""
+        SELECT COUNT(*) AS null_orders FROM curated.{CURATED_TABLE}
+        WHERE order_id IS NULL;
+        """,
     )
 
     dq_negative_amount = RedshiftDataOperator(
@@ -165,7 +177,10 @@ with DAG(
         database=REDSHIFT_DB,
         workgroup_name=REDSHIFT_WORKGROUP,
         return_sql_result=True,
-        sql=f"SELECT COUNT(*) AS bad_amount FROM curated.{CURATED_TABLE} WHERE amount < 0;",
+        sql=f"""
+        SELECT COUNT(*) AS bad_amount FROM curated.{CURATED_TABLE}
+        WHERE amount < 0;
+        """,
     )
 
     evaluate_quality = PythonOperator(
