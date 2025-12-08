@@ -55,10 +55,12 @@ data "aws_iam_policy_document" "s3_policy" {
 resource "aws_redshiftserverless_namespace" "ns" {
   namespace_name = "${var.project}-ns"
   db_name        = "analytics"
+  iam_roles      = [aws_iam_role.redshift_load.arn]
 }
 
 resource "aws_redshiftserverless_workgroup" "wg" {
-  workgroup_name = "${var.project}-wg"
-  namespace_name = aws_redshiftserverless_namespace.ns.namespace_name
-  base_capacity  = 8
+  workgroup_name      = "${var.project}-wg"
+  namespace_name      = aws_redshiftserverless_namespace.ns.namespace_name
+  base_capacity       = 8
+  publicly_accessible = true
 }
