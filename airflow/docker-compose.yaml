@@ -1,12 +1,53 @@
+x-airflow-env: &airflow-env
+  AIRFLOW__CORE__EXECUTOR: "SequentialExecutor"
+  AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: "sqlite:////opt/airflow/db/airflow.db"
+  AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_WEBSERVER_SECRET_KEY}
+  _PIP_ADDITIONAL_REQUIREMENTS: "apache-airflow-providers-amazon boto3"
 
-version: "3.8"
+
 services:
-  airflow:
+  init-perms:
+    image: busybox
+    volumes:
+      - airflow-db:/opt/airflow/db
+    command: sh -c "chown -R 50000:0 /opt/airflow/db"
+
+  airflow-init:
     image: apache/airflow:2.9.3
     environment:
-      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-      AIRFLOW__CORE__EXECUTOR: "LocalExecutor"
-      _PIP_ADDITIONAL_REQUIREMENTS: "apache-airflow-providers-amazon boto3"
+      <<: *airflow-env
+    volumes:
+      - airflow-db:/opt/airflow/db
+      - ./dags:/opt/airflow/dags
+      - ./plugins:/opt/airflow/plugins
+      - ../sql:/opt/sql
+    command: ["bash","-c",
+      "airflow db init && airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com"]
+    depends_on:
+      init-perms:
+        condition: service_completed_successfully
+
+  airflow-webserver:
+    image: apache/airflow:2.9.3
+    environment:
+      <<: *airflow-env
+    ports:
+      - "8080:8080"
+    volumes:
+      - airflow-db:/opt/airflow/db
+      - ./dags:/opt/airflow/dags
+      - ./plugins:/opt/airflow/plugins
+      - ../sql:/opt/sql
+    command: "airflow webserver"
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+  
+  airflow-scheduler:
+    image: apache/airflow:2.9.3
+    environment:
+      <<: *airflow-env
       # Pass through selected env vars for DAGs/operators
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
@@ -15,11 +56,15 @@ services:
       REDSHIFT_SERVERLESS_WORKGROUP: ${REDSHIFT_SERVERLESS_WORKGROUP}
       REDSHIFT_DATABASE: ${REDSHIFT_DATABASE}
       REDSHIFT_IAM_ROLE_ARN: ${REDSHIFT_IAM_ROLE_ARN}
-    ports:
-      - "8080:8080"
     volumes:
+      - airflow-db:/opt/airflow/db
       - ./dags:/opt/airflow/dags
       - ./plugins:/opt/airflow/plugins
       - ../sql:/opt/sql
-    command: ["bash","-c",
-      "airflow db init && airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com && airflow webserver & airflow scheduler"]
+    command: "airflow scheduler"
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+volumes:
+  airflow-db:
