@@ -186,7 +186,6 @@ with DAG(
     evaluate_quality = PythonOperator(
         task_id="evaluate_quality",
         python_callable=_fail_if_bad,
-        provide_context=True,
     )
 
     finish = EmptyOperator(task_id="finish")
