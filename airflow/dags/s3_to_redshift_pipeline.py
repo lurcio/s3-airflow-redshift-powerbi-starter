@@ -20,15 +20,35 @@ CURATED_TABLE = "fact_sales"
 S3_PREFIX = "raw/sales_orders/sales_orders_test.csv"
 
 
-def _assert_not_empty(ti, **kwargs):
-    count = 0
-    res = ti.xcom_pull(task_ids="dq_rowcount")
-    if not res:
-        raise AirflowFailException("DQ failed: no result for row count")
-    if res["ColumnMetadata"][0]["label"] == "rowcount":
-        count = res["Records"][0][0]["longValue"]
-    if count == 0:
-        raise AirflowFailException("DQ failed: curated table is empty")
+def _fail_if_bad(**context):
+    # Get XCom results
+    row_count = context["ti"].xcom_pull(task_ids="dq_row_count")
+    null_customers = context["ti"].xcom_pull(task_ids="dq_null_customer_id")
+    null_orders = context["ti"].xcom_pull(task_ids="dq_null_order_id")
+    bad_amount = context["ti"].xcom_pull(task_ids="dq_negative_amount")
+
+    cnt_row = row_count["Records"][0][0]["longValue"] if row_count else None
+    cnt_null_customers = (
+        null_customers["Records"][0][0]["longValue"]
+        if null_customers
+        else None
+    )
+    cnt_null_orders = (
+        null_orders["Records"][0][0]["longValue"] if null_orders else None
+    )
+    cnt_bad = bad_amount["Records"][0][0]["longValue"] if bad_amount else None
+
+    if (
+        (cnt_row is not None and cnt_row == 0)
+        or (cnt_null_customers is not None and cnt_null_customers > 0)
+        or (cnt_null_orders is not None and cnt_null_orders > 0)
+        or (cnt_bad is not None and cnt_bad > 0)
+    ):
+        raise AirflowFailException(
+            f"Data quality check failed — row_count={cnt_row}, null_customers={cnt_null_customers}, null_orders={cnt_null_orders}, bad_amount={cnt_bad}"
+        )
+    else:
+        print("Data quality checks passed ✅")
 
 
 with DAG(
@@ -116,17 +136,41 @@ with DAG(
         """,
     )
 
-    dq_rowcount = RedshiftDataOperator(
-        task_id="dq_rowcount",
+    dq_row_count = RedshiftDataOperator(
+        task_id="dq_row_count",
         database=REDSHIFT_DB,
         workgroup_name=REDSHIFT_WORKGROUP,
         return_sql_result=True,
-        sql=f"SELECT COUNT(*) AS rowcount FROM curated.{CURATED_TABLE};",
+        sql=f"SELECT COUNT(*) AS row_count FROM curated.{CURATED_TABLE};",
     )
 
-    assert_not_empty = PythonOperator(
-        task_id="assert_not_empty",
-        python_callable=_assert_not_empty,
+    dq_null_customer_id = RedshiftDataOperator(
+        task_id="dq_null_customer_id",
+        database=REDSHIFT_DB,
+        workgroup_name=REDSHIFT_WORKGROUP,
+        return_sql_result=True,
+        sql=f"SELECT COUNT(*) AS null_customers FROM curated.{CURATED_TABLE} WHERE customer_id IS NULL;",
+    )
+
+    dq_null_order_id = RedshiftDataOperator(
+        task_id="dq_null_order_id",
+        database=REDSHIFT_DB,
+        workgroup_name=REDSHIFT_WORKGROUP,
+        return_sql_result=True,
+        sql=f"SELECT COUNT(*) AS null_orders FROM curated.{CURATED_TABLE} WHERE order_id IS NULL;",
+    )
+
+    dq_negative_amount = RedshiftDataOperator(
+        task_id="dq_negative_amount",
+        database=REDSHIFT_DB,
+        workgroup_name=REDSHIFT_WORKGROUP,
+        return_sql_result=True,
+        sql=f"SELECT COUNT(*) AS bad_amount FROM curated.{CURATED_TABLE} WHERE amount < 0;",
+    )
+
+    evaluate_quality = PythonOperator(
+        task_id="evaluate_quality",
+        python_callable=_fail_if_bad,
         provide_context=True,
     )
 
@@ -139,7 +183,12 @@ with DAG(
         copy_from_s3,
         create_curated,
         load_curated,
-        dq_rowcount,
-        assert_not_empty,
+        [
+            dq_row_count,
+            dq_null_customer_id,
+            dq_null_order_id,
+            dq_negative_amount,
+        ],
+        evaluate_quality,
         finish,
     )
