@@ -6,6 +6,10 @@ As Power BI Desktop requires Windows I have performed all of the steps using Win
 
 I worked under the assumption that I had been handed a pipeline that the author believed to be fully working, and I have adopted a step-by-step approach to fix errors.
 
+The pipline implements the following architecture:
+
+![Architecture](docs/images/architecture.png)
+
 ## GitHub Actions
 
 Imported code into a new GitHub repo
